@@ -1,4 +1,9 @@
 ### Assigment 2
+install.packages("stringi")
+install.packages("tidyverse")
+install.packages("MLmetrics")
+
+
 library(stringi)
 library(tidyverse)
 library(MLmetrics)
@@ -71,9 +76,12 @@ t(X)
 
 z = function(X, beta, beta0){
   # your code for linear transformation
-b = as.matrix(b)
+
   
-linear_transformation =  X %*% b  
+  
+  b = as.matrix(b)
+  
+  linear_transformation =  X %*% b  
   
   return(linear_transformation)
 }
@@ -85,14 +93,14 @@ sigmoid = function(z){
 }
 
 cross_entropy = function(sigmoid, y){
-
+  
   loss = 0
   
   for(i in 1:length(sigmoid)){
-  loss = loss + ( (- y[i]) * log(sigmoid[i]) - ((1 - y[i]) * log(1 - sigmoid[i]) )) / length(sigmoid)   
+    loss = loss + ( (- y[i]) * log(sigmoid[i]) - ((1 - y[i]) * log(1 - sigmoid[i]) )) / length(sigmoid)   
     
   }
-   
+  
   return(loss)
 }
 
@@ -105,21 +113,65 @@ lin = z(X, b)
 h = sigmoid(lin)
 cross_entropy(h, y)
 
+0 + 0.1 * sigmoid(t(biodata$X_train) %*%  beta) - biodata$y_train
+
 ## gradient_descent
 
 
+View(t(bio$X_train))
+View(bio$y_train)
 
+biodata <- biopsy_data() 
 
+## Changing the structure of 2 and 1 to 1 and 0 for the dummy variables
+
+biodata$y_train <- ifelse(biodata$y_train  == 2, 1, 0)
+biodata$y_test <- ifelse(biodata$y_test  == 2, 1, 0) 
+
+biodata$X_train <- t(biodata$X_train) 
+
+view(biodata$X_train)
+
+ beta <- as.matrix(rep(0,9))
 
 gradient_descent = function(X, y, epochs, stepsize){
+  biodata <- biopsy_data() 
+  
+  ## Changing the structure of 2 and 1 to 1 and 0 for the dummy variables
+  
+  biodata$y_train <- ifelse(bio$y_train  == 2, 1, 0)
+  biodata$y_test <- ifelse(bio$y_test  == 2, 1, 0) 
 
-for(i in 0:epochs) {
+  ## Transpose matrix 
   
+  biodata$X_train <- t(biodata$X_train)  
   
+  ## set initial values 
   
-} 
+  intercept = 0  
+  
+  beta <- as.matrix(rep(0,9))  
+   
+  for(i in 1:epochs) {
+  
+ beta = beta[,i] - stepsize * (biodata$X_train * (1/ (1 + exp(-z(beta)) ) - biodata$y_train)
+    
+  } 
   
   return(list(beta = beta,
               intercept = beta0,
               loss = loss))
 }
+
+
+beta <- rep(0,9)
+
+mat2 <- as.matrix(rep(1,9))
+
+View(biodata$X_train)
+
+t(biodata$X_train) %*%  beta 
+
+ 
+beta - ((0.1 * (biodata$X_train * (sigmoid(z(biodata$X_train, beta)) - 1))) / 9 )
+
