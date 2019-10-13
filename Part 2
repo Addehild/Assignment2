@@ -1,0 +1,43 @@
+library(stringi)
+library(tidyverse)
+
+##----##
+bio1 <- read_csv("biopsy.csv")
+
+
+## Create a function for calling the data
+biopsy_data = function(loc = "biopsy.csv"){
+  biop = na.omit(read.csv(loc, na.strings = c('?', "NA")))
+  train_ids = sample(nrow(biop), size = 300)
+  X_train = biop[train_ids, names(biop) %in% stri_paste("V", 1:9)]
+  x_test = biop[-train_ids, names(biop) %in% stri_paste("V", 1:9)]
+  y_train = biop[train_ids, names(biop) == "class"]
+  y_test = biop[-train_ids, names(biop) == "class"]
+  return(list(X_train = as.matrix(X_train),
+              x_test = as.matrix(x_test),
+              y_train = as.matrix(as.integer(y_train)),
+              y_test = as.matrix(as.integer(y_test))))
+}
+
+bio <- biopsy_data()
+
+bio$intercept <- matrix(1, nrow(bio$X_train), 1)
+bio$beta <- matrix(0, 300, 9)
+
+bio$y_train <- ifelse(bio$y_train == 2, 1, 0)
+
+gradient_descent = function(X, y, epochs, stepsize){
+  
+  beta <-  matrix(0, nrow(bio_T), 1)
+  beta0 <- 0
+  iter = 1
+  for(i in 1:epochs){
+    beta0 = beta0 - stepsize * (1 / length(y) * sum(sigmoid(z(bio$intercept, beta0, 0)) - y))
+    beta = beta - stepsize * (1 / length(y) * t(X) %*% (sigmoid(z(X, beta, 0)) - y))
+    iter = iter + 1
+    }
+  
+  
+  return(list(beta = beta,
+              intercept = beta0,
+              loss = loss))
