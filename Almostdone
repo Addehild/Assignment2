@@ -1,0 +1,164 @@
+### Assigment 2 
+
+# 1 
+set.seed(1)
+
+biopsy_data = function(loc = "biopsy.csv"){
+  biop = na.omit(read.csv(loc, na.strings = c('?', "NA")))
+  train_ids = sample(nrow(biop), size = 300)
+  X_train = biop[train_ids, names(biop) %in% stri_paste("V", 1:9)]
+  x_test = biop[-train_ids, names(biop) %in% stri_paste("V", 1:9)]
+  y_train = biop[train_ids, names(biop) == "class"]
+  y_test = biop[-train_ids, names(biop) == "class"]
+  return(list(X_train = as.matrix(X_train),
+              x_test = as.matrix(x_test),
+              y_train = as.matrix(as.integer(y_train)),
+              y_test = as.matrix(as.integer(y_test))))
+}
+
+bio <- biopsy_data() 
+
+## Changing the structure of 2 and 1 to 1 and 0 for the dummy variables
+
+bio$intercept <- matrix(1, nrow(bio$X_train), 1)
+bio$y_train <- ifelse(bio$y_train == 2, 1, 0)
+bio$y_test <- ifelse(bio$y_test == 2, 1, 0)
+
+## Checking the structure of the imported data
+
+str(bio)
+
+
+# 2 
+
+## Implementing eq 9 & 10
+
+z = function(X, beta, beta0){
+  
+  linear_transformation = beta0 + X %*% beta  
+  
+  return(linear_transformation)
+}
+
+
+sigmoid = function(z){
+  sigmoid_transformation = 1/ (1 + exp(-z))
+  return(sigmoid_transformation)
+}
+
+cross_entropy = function(sigmoid, y){
+  ## Initiate a starting value
+  loss = 0
+  
+  for(i in 1:length(sigmoid)){
+    loss = loss + ( (- y[i]) * log(sigmoid[i]) - ((1 - y[i]) * log(1 - sigmoid[i]) )) / length(sigmoid)   
+    
+  }
+  
+  return(loss)
+}
+
+## Clarify that everything works with a simple toy example
+
+X = matrix(c(1,0,3,1,1,5), ncol = 3)
+X = cbind(1, X)
+y = c(0, 1)
+b0 = 0.5
+b = c(b0, 2.5, -1, 2)
+lin = z(X, b, 0) # setting a zero for b0 since it is already in the b vector
+h = sigmoid(lin)
+cross_entropy(h, y)
+
+## 3 Estimating the intercept and regression coefficients by gradient descent 
+
+gradient_descent = function(X, y, epochs, stepsize){
+  
+  beta <-  matrix(0, ncol(bio$X_train), 1)
+  beta0 <- 0
+  loss = rep(0,epochs)
+  
+for(i in 1:epochs){
+    beta0 = beta0 - stepsize * (1 / length(y) * sum(sigmoid(z(bio$intercept, beta0, 0)) - y))
+    beta = beta - stepsize * (1 / length(y) * t(X) %*% (sigmoid(z(X, beta, 0)) - y))
+    
+    loss[i] = cross_entropy(sigmoid(z(X, beta, 0)), y)
+  }
+  
+  
+  return(list(beta = beta,
+              intercept = beta0, loss = loss))
+}
+
+
+## Setting epochs to 500 and comparing the loss for stepsize .001, .01 and .05 
+
+step.001 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.001)
+step.01 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.01)
+step.05 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.05)
+
+dataplot <- as.tibble(list( step.001 = step.001$loss, step.01= step.01$loss, step.05 = step.05$loss))
+
+
+
+ggplot() + 
+  geom_line(mapping = aes(x = 1:length(dataplot$step.001) , y = dataplot$step.001, color = "0.001" )) + 
+  geom_line(mapping = aes(x = 1:length(dataplot$step.001) , y = dataplot$step.01, color = "0.01" )) + 
+  geom_line(mapping = aes(x = 1:length(dataplot$step.001) , y = dataplot$step.05, color = "0.05" ))  
+
+
+# By looking at the plot of the calculated loss at every iteration. It's clear that 0.05 yields 
+# the lowest loss and a stepsize of 0.001 has the biggest loss. The is most likely because the 
+# steps are too small when the stepsizes are 0.001 and 0.01 which in theory means that the parameters 
+# are not yet optimized. Therefore, we would choose a stepsize of 0.05 if we were to do 500 iterations
+# given our data. 
+
+## 5 
+
+## Prediction function 
+
+predict_logistic = function(X, y, beta, beta0, p_cutoff = .5){
+  
+  ## create a matrix where all values will be stored
+  probabilities = matrix(0, nrow(X), 2)
+  
+  probabilities[,1] = sigmoid(z(X, beta, beta0))
+  
+  ## Loop for binary classification, if the predicted probability is greater than
+  ## the cutoff then that observations will be predicted to be classified as a one. 
+  for(i in 1:nrow(X)){
+    if(probabilities[i,1] > p_cutoff ){
+      probabilities[i,2] = 1
+    } else{probabilities[i,2] = 0}
+  }
+  
+  predictions = sum(probabilities[,2] == y ) / nrow(X)
+  
+  return(predictions)
+  
+}
+
+prediction_list <- list(stepsize.001 = (predict_logistic(bio$x_test, bio$y_test, step.001$beta, step.001$intercept)),
+                        stepsize.01 = (predict_logistic(bio$x_test, bio$y_test, step.01$beta, step.01$intercept)),
+                        stepsize.05 = (predict_logistic(bio$x_test, bio$y_test, step.05$beta, step.05$intercept)))
+
+# By running predictiong function when our seed is set to 1, we still get that the best prediction accuracy when the stepsize is 05, 
+# however the stepsize of 01 is close to the accuracy of the stepsize of 05
+
+prediction_list
+
+# 6 
+
+# Setting the epochs to 2000 
+
+step.001 <- gradient_descent(bio$X_train, bio$y_train, 2000, 0.001)
+step.01 <- gradient_descent(bio$X_train, bio$y_train, 2000, 0.01)
+step.05 <- gradient_descent(bio$X_train, bio$y_train, 2000, 0.05)
+
+
+prediction_list <- list(stepsize.001 = (predict_logistic(bio$x_test, bio$y_test, step.001$beta, step.001$intercept)),
+                        stepsize.01 = (predict_logistic(bio$x_test, bio$y_test, step.01$beta, step.01$intercept)),
+                        stepsize.05 = (predict_logistic(bio$x_test, bio$y_test, step.05$beta, step.05$intercept)))
+
+prediction_list
+## when the epochs are set the 2000 then we get the same classification accuracy for stepsize of 01 and 05 this is probably because the 
+## parameters have already been optimized and are therefore the same when the algorithm gets to iterate long enough 
