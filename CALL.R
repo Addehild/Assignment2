@@ -49,8 +49,9 @@ prediction <- pred(data= prostate, indep = c("lcavol", "lweight", "age", "lbph" 
 #### 1.4
 
 cv4_Aintercept <- function(data, dep, indep, lambda) {
-  A <- matrix(0, nrow = 5, ncol = 1)
-  for (i in 1:5){
+  k <- max(data$group)
+  A <- matrix(0, nrow = k, ncol = 1)
+  for (i in 1:k){
     train <- data %>% filter(group != i)
     test <- data %>% filter(group == i)
     y_test <- as.matrix(test[,dep])
