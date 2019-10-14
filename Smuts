@@ -44,3 +44,18 @@ step.05 <- gradient_descent(bio$X_train, bio$y_train, 300, 0.05)
 predict_logistic(bio$x_test, bio$y_test, step.001$beta, step.001$intercept)
 predict_logistic(bio$x_test, bio$y_test, step.01$beta, step.01$intercept)
 predict_logistic(bio$x_test, bio$y_test, step.05$beta, step.05$intercept)
+
+
+
+
+## ggplot  (☞ﾟ∀ﾟ)☞  ¯\_(ツ)_/¯
+
+ggplot(dataplot, aes(x = id)) +
+  geom_line(aes(y = value, color = variable), size = 1.2) +
+  labs(y = "Cross entropy loss",
+       x = "Epoch",
+       title = "Cross entropy loss for stepsizes 0.001, 0.01 and 0.05", 
+       subtitle = "hej", 
+       caption = "hej",
+       colour = "Stepsize") +
+  scale_color_manual(values = c("darkgreen", "darkblue", "darkturquoise"), labels = c("0.001", "0.01", "0.05"))
