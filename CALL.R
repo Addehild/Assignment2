@@ -83,8 +83,14 @@ cv5intercept_B <- function(data, dep, indep, lambda) {
   return(returnobject)
 }
 
-#####1.6
+
 MSE_lambdaintercept_B<-cv5intercept_B(data = prostate, 
                                       dep = "lpsa",
                                       indep = c("lcavol", "lweight", "age", "lbph" , "svi", "lcp", "gleason" , "pgg45"),
                                       lambda = 0:50)
+
+#####1.6
+ggplot(MSE_lambdaintercept_B, aes(x = lambda, y = mse)) +
+  geom_line() +
+  geom_point()
+
