@@ -48,7 +48,7 @@ prediction <- pred(data= prostate, indep = c("lcavol", "lweight", "age", "lbph" 
 
 #### 1.4
 
-cv4_Aintercept <- function(data, dep, indep, lambda) {
+cv1 <- function(data, dep, indep, lambda) {
   k <- max(data$group)
   A <- matrix(0, nrow = k, ncol = 1)
   for (i in 1:k){
@@ -65,17 +65,17 @@ cv4_Aintercept <- function(data, dep, indep, lambda) {
   return(mse)
 }
 
-MSEintercept_B<-cv4_Aintercept(data = prostate, 
+MSE<-cv1(data = prostate, 
                            dep = "lpsa",
                            indep = c("lcavol", "lweight", "age", "lbph" , "svi", "lcp", "gleason" , "pgg45"),
                            lambda = 1)
 
 ########### 1.5
 
-cv5intercept_B <- function(data, dep, indep, lambda) {
+cv2 <- function(data, dep, indep, lambda) {
   B <- matrix(0, nrow = length(lambda), ncol = 2)
   for(j in lambda){
-    mse<-cv4_Aintercept(data, dep, indep, lambda = j)
+    mse<-cv1(data, dep, indep, lambda = j)
     B[j+1,2]<-mse
     B[j+1,1]<-j
     returnobject<-as.data.frame(B)
@@ -85,7 +85,7 @@ cv5intercept_B <- function(data, dep, indep, lambda) {
 }
 
 
-MSE_lambdaintercept_B<-cv5intercept_B(data = prostate, 
+MSE_lambda<-cv2(data = prostate, 
                                       dep = "lpsa",
                                       indep = c("lcavol", "lweight", "age", "lbph" , "svi", "lcp", "gleason" , "pgg45"),
                                       lambda = 0:50)
