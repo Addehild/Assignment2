@@ -1,0 +1,361 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+
+\title{Statistical programming \\ Assignment 2  \\ (\texttt{Group 1})}
+\author{Andreas Hild, Andreas Pettersson, Henrik Bark}
+\date{\today}
+\renewcommand*\contentsname{Table of contents}
+\begin{document}
+\maketitle 
+\tableofcontents
+\newpage
+\section{Task 1: Ridge regression}
+
+<<include = FALSE>>=
+opts_chunk$set(size = "footnotesize",
+comment = NA,
+background = "#E7E7E7",
+prompt = FALSE,
+fig.width = 6,
+fig.asp = 0.62,
+fig.align = "center")
+@
+
+<<include=FALSE>>=
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(devtools)
+library(modelr)
+
+@
+Problem 2:
+Beta ridge estimate code
+<<message = FALSE, warning = FALSE, echo = FALSE >>=
+prostate<-read_csv("prostate.csv")
+@
+
+<< eval = TRUE >>=
+ridge <- function(data, dep, indep, lambda) {
+  y <- as.matrix(data[,dep])
+  x <- as.matrix(data[,indep])
+  x <- cbind(1,x)
+  
+  Ix <- diag(x)
+  beta_ridge <- as.vector(c(solve((crossprod(x,x)) + 
+                                    (lambda*Ix)) %*% (crossprod(x,y))))
+  
+  names(beta_ridge) <- colnames(x)
+  
+  return(beta_ridge)
+  
+  
+  
+}
+
+
+ridge_model<-ridge(data = prostate, 
+                   dep = "lpsa",
+                   indep = c("lcavol", "lweight", 
+                             "age", "lbph" , "svi", 
+                             "lcp", "gleason" , "pgg45"),
+                   lambda = 1)
+@
+Problem 3:
+Predictions code
+
+<< eval = TRUE >>=
+pred <- function(data, indep, beta_hat){
+  x <- as.matrix(data[,indep]) 
+  beta <- as.matrix(beta_hat)
+  x <- cbind(1,x)
+  preds <- (x %*% beta)
+  return(preds)
+}
+
+
+
+prediction <- pred(data= prostate, indep = c("lcavol", "lweight",
+                                             "age", "lbph" , "svi",
+                                             "lcp", "gleason" , "pgg45"),
+                   beta_hat = ridge_model)
+@
+
+Problem 4:
+Mean Squared Error of Cross Validation
+
+
+<< eval = TRUE >>=
+cv1<- function(data, dep, indep, lambda) {
+  k <- max(data$group)
+  A <- matrix(0, nrow = k, ncol = 1)
+  for (i in 1:k){
+    train <- data %>% filter(group != i)
+    test <- data %>% filter(group == i)
+    y_test <- as.matrix(test[,dep])
+    beta_hat <- ridge(data=train, dep, indep, lambda  )
+    y_hat <- pred(data = test, indep , beta_hat )
+    group_mse <- mean((as.vector(y_hat)-as.vector(y_test))^2)
+    A[i,] <- group_mse
+    
+  }
+  mse<-sum(A)/k
+  return(mse)
+}
+
+MSE<-cv1(data = prostate, 
+                               dep = "lpsa",
+                               indep = c("lcavol", "lweight", 
+                                         "age", "lbph" , "svi",
+                                         "lcp", "gleason" , "pgg45"),
+                               lambda = 1)
+MSE
+@
+\newpage
+Problem 5: MSE of Cross validation for different values of lambda
+
+<< eval = TRUE >>=
+cv2 <- function(data, dep, indep, lambda) {
+  B <- matrix(0, nrow = length(lambda), ncol = 2)
+  for(j in lambda){
+    mse<-cv1(data, dep, indep, lambda = j)
+    B[j+1,2]<-mse
+    B[j+1,1]<-j
+    returnobject<-as.data.frame(B)
+    names(returnobject)<- c("lambda","mse")
+  }
+  return(returnobject)
+}
+
+
+MSE_lambda<-cv2(data = prostate, 
+                                      dep = "lpsa",
+                                      indep = c("lcavol", "lweight",
+                                                "age", "lbph" , "svi",
+                                                "lcp", "gleason" , "pgg45"),
+                                      lambda = 0:50)
+
+
+@
+
+Problem 6: Plot the MSE values from Problem 5 a as variable dependent on lambda
+
+<<message = FALSE, warning = FALSE, echo = FALSE >>=
+ggplot(MSE_lambda, aes(x = lambda, y = mse)) +
+  geom_line() +
+  geom_point()
+@
+
+\maketitle 
+\section{Section 2}
+\subsection{Task 1}
+
+The biopsy data is loaded in our global enviroment. 
+
+<<include = FALSE>>=
+### Assigment 2 
+
+library(stringi)
+library(tidyverse)
+library(MLmetrics)
+library(reshape2)
+@
+
+<<>>=
+
+# set seed to one for reproducibility
+
+set.seed(1)
+
+biopsy_data = function(loc = "biopsy.csv"){
+  biop = na.omit(read.csv(loc, na.strings = c('?', "NA")))
+  train_ids = sample(nrow(biop), size = 300)
+  X_train = biop[train_ids, names(biop) %in% stri_paste("V", 1:9)]
+  x_test = biop[-train_ids, names(biop) %in% stri_paste("V", 1:9)]
+  y_train = biop[train_ids, names(biop) == "class"]
+  y_test = biop[-train_ids, names(biop) == "class"]
+  return(list(X_train = as.matrix(X_train),
+              x_test = as.matrix(x_test),
+              y_train = as.matrix(as.integer(y_train)),
+              y_test = as.matrix(as.integer(y_test))))
+}
+
+bio <- biopsy_data() 
+
+## Changing the structure of 2 and 1 to 1 and 0 for the dummy variables
+
+bio$intercept <- matrix(1, nrow(bio$X_train), 1)
+bio$y_train <- ifelse(bio$y_train == 2, 1, 0)
+bio$y_test <- ifelse(bio$y_test == 2, 1, 0)
+
+## Checking the structure of the imported data
+
+str(bio)
+@
+\subsection{Task 2}
+<<>>==
+# 2 
+
+## Implementing eq 9 & 10
+
+z = function(X, beta, beta0){
+  
+  linear_transformation = beta0 + X %*% beta  
+  
+  return(linear_transformation)
+}
+
+
+sigmoid = function(z){
+  sigmoid_transformation = 1/ (1 + exp(-z))
+  return(sigmoid_transformation)
+}
+
+cross_entropy = function(sigmoid, y){
+  ## Initiate a starting value
+  loss = 0
+  
+  for(i in 1:length(sigmoid)){
+    loss = loss + ( (- y[i]) * log(sigmoid[i])
+  - ((1 - y[i]) * log(1 - sigmoid[i]) )) / length(sigmoid)   
+    
+  }
+  
+  return(loss)
+}
+@
+
+Ensuring that everything works with a simple toy example
+<<>>==
+X = matrix(c(1,0,3,1,1,5), ncol = 3)
+X = cbind(1, X)
+y = c(0, 1)
+b0 = 0.5
+b = c(b0, 2.5, -1, 2)
+lin = z(X, b, 0) # setting a zero for b0 since it is already in the b vector
+h = sigmoid(lin)
+cross_entropy(h, y)
+@
+
+\subsection{Task 3}
+
+Estimating the intercept and regression coefficients by gradient descent 
+<<>>==
+
+# the zero in the Z function is in order to have a 
+# general formula which both beta and beta0 into account
+
+gradient_descent = function(X, y, epochs, stepsize){
+  
+  beta <-  matrix(0, ncol(bio$X_train), 1)
+  beta0 <- 0
+  loss = rep(0,epochs)
+  
+for(i in 1:epochs){
+  beta0 = beta0 - stepsize * (1 / length(y) * sum(sigmoid(z(X, beta, beta0)) - y))
+  beta = beta - stepsize * (1 / length(y) * t(X) %*% (sigmoid(z(X, beta, beta0)) - y))
+  
+
+    
+    loss[i] = cross_entropy(sigmoid(z(X, beta, beta0)), y)
+  }
+  
+  
+  return(list(beta = beta,
+              intercept = beta0, loss = loss))
+}
+@
+
+\subsection{Task 4}
+
+Setting epochs to 500 and comparing the loss for stepsize .001, .01 and .05 
+
+<<>>==
+step.001 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.001)
+step.01 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.01)
+step.05 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.05)
+
+dataplot <- as.tibble(list(step.001 = step.001$loss, 
+                           step.01= step.01$loss, 
+                           step.05 = step.05$loss,
+                           id = rep(1:500)))
+
+dataplot = melt(dataplot, id = "id")
+
+
+
+ggplot(dataplot, aes(x = id)) +
+  geom_line(aes(y = value, color = variable), size = 1.2) +
+  labs(y = "Cross entropy loss",
+       x = "Epoch",
+       title = "Cross entropy loss for stepsizes 0.001, 0.01 and 0.05", 
+       colour = "Stepsize") +
+  scale_color_manual(values = c("darkgreen", "darkblue", "darkturquoise"), labels = c("0.001", "0.01", "0.05"))
+@
+
+By looking at the plot of the calculated loss at every iteration. It's clear that 0.05 yields the lowest loss and a stepsize of 0.001 has the biggest loss. The is most likely because the steps are too small when the stepsizes are 0.001 and 0.01 which in theory means that the parameters are not yet optimized. Therefore, we would choose a stepsize of 0.05 if we were to do 500 iterations given our data and with taking the randomness of the data sampling into account. 
+
+\subsection{Task 5}
+
+Write a prediction function
+<<>>==
+## Prediction function 
+
+predict_logistic = function(X, y, beta, beta0, p_cutoff = .5){
+  
+  ## create a matrix where all values will be stored
+  probabilities = matrix(0, nrow(X), 2)
+  
+  probabilities[,1] = sigmoid(z(X, beta, beta0))
+  
+  ## Loop for binary classification, if the predicted probability is greater than
+  ## the cutoff then that observations will be predicted to be classified as a one. 
+  for(i in 1:nrow(X)){
+    if(probabilities[i,1] > p_cutoff ){
+      probabilities[i,2] = 1
+    } else{probabilities[i,2] = 0}
+  }
+  
+  predictions = sum(probabilities[,2] == y ) / nrow(X)
+  
+  return(predictions)
+  
+}
+
+prediction_list <- list(stepsize.001 = (predict_logistic(bio$x_test, bio$y_test, 
+                        step.001$beta, step.001$intercept)),
+                        stepsize.01 = (predict_logistic(bio$x_test, bio$y_test, 
+                        step.01$beta, step.01$intercept)),
+                        stepsize.05 = (predict_logistic(bio$x_test, bio$y_test, 
+                        step.05$beta, step.05$intercept)))
+
+# By running predictiong function when our seed is set to 1, we still get that the best prediction accuracy when the stepsize is 05, 
+# however the stepsize of 01 is close to the accuracy of the stepsize of 05
+
+prediction_list
+@
+
+By running the predictiong function in order to check the prediction accuracy, we still get that the best prediction accuracy is  obtained when the stepsize is set to 05. However, the stepsize of 01 is close to the accuracy of the stepsize of 05 with 500 iterations and 001 still performs the worse. 
+
+
+\subsection{Task 6}
+
+<<>>==
+# Setting the epochs to 2000 
+
+step.001 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.001)
+step.01 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.01)
+step.05 <- gradient_descent(bio$X_train, bio$y_train, 500, 0.05)
+
+
+prediction_list <- list(stepsize.001 = (predict_logistic(bio$x_test, bio$y_test, step.001$beta, step.001$intercept)),
+                        stepsize.01 = (predict_logistic(bio$x_test, bio$y_test, step.01$beta, step.01$intercept)),
+                        stepsize.05 = (predict_logistic(bio$x_test, bio$y_test, step.05$beta, step.05$intercept)))
+
+prediction_list
+@
+
+When the epochs are set the 2000 then we get the same classification accuracy for stepsize of 01 and 05 this is probably because the parameters have already been optimized and are therefore the same when the algorithm gets to iterate long enough 
+
+
+\end{document}
