@@ -99,7 +99,7 @@ cv1<- function(data, dep, indep, lambda) {
     A[i,] <- group_mse
     
   }
-  mse<-sum(A)/5
+  mse<-sum(A)/k
   return(mse)
 }
 
