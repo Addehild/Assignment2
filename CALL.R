@@ -91,7 +91,11 @@ MSE_lambdaintercept_B<-cv5intercept_B(data = prostate,
                                       lambda = 0:50)
 
 #####1.6
-ggplot(MSE_lambdaintercept_B, aes(x = lambda, y = mse)) +
+ggplot(MSE_lambda, aes(x = lambda, y = mse)) +
   geom_line() +
-  geom_point()
+  geom_point() +
+  labs( title = "MSE as a variable dependent on lambda") +
+  scale_y_continuous(name= "Mean Squared Error", limits=c(0, 2), 
+                     breaks = c(0, 0.25, 0.5 , 0.75, 1, 1.25, 1.5 , 1.75, 2)) +
+  scale_x_continuous(name = "Value of lambda" , breaks = c(0,5,10,15,20,25,30,35,40,45,50))
 
