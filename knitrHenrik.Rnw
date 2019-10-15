@@ -1,0 +1,148 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+
+\title{Statistical programming \\ Assignment 2  \\ (\texttt{Group 1})}
+\author{Andreas Hild, Andreas Pettersson, Henrik Bark}
+\date{\today}
+\renewcommand*\contentsname{Table of contents}
+\begin{document}
+\maketitle 
+\tableofcontents
+\newpage
+\section{Task 1: Ridge regression}
+
+<<include = FALSE>>=
+opts_chunk$set(size = "footnotesize",
+comment = NA,
+background = "#E7E7E7",
+prompt = FALSE,
+fig.width = 6,
+fig.asp = 0.62,
+fig.align = "center")
+@
+
+<<include=FALSE>>=
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(devtools)
+library(modelr)
+
+@
+Problem 2:
+Beta ridge estimate code
+<<message = FALSE, warning = FALSE, echo = FALSE >>=
+prostate<-read_csv("prostate.csv")
+@
+
+<< eval = TRUE >>=
+ridge <- function(data, dep, indep, lambda) {
+  y <- as.matrix(data[,dep])
+  x <- as.matrix(data[,indep])
+  x <- cbind(1,x)
+  
+  Ix <- diag(x)
+  beta_ridge <- as.vector(c(solve((crossprod(x,x)) + 
+                                    (lambda*Ix)) %*% (crossprod(x,y))))
+  
+  names(beta_ridge) <- colnames(x)
+  
+  return(beta_ridge)
+  
+  
+  
+}
+
+
+ridge_model<-ridge(data = prostate, 
+                   dep = "lpsa",
+                   indep = c("lcavol", "lweight", 
+                             "age", "lbph" , "svi", 
+                             "lcp", "gleason" , "pgg45"),
+                   lambda = 1)
+@
+Problem 3:
+Predictions code
+
+<< eval = TRUE >>=
+pred <- function(data, indep, beta_hat){
+  x <- as.matrix(data[,indep]) 
+  beta <- as.matrix(beta_hat)
+  x <- cbind(1,x)
+  preds <- (x %*% beta)
+  return(preds)
+}
+
+
+
+prediction <- pred(data= prostate, indep = c("lcavol", "lweight",
+                                             "age", "lbph" , "svi",
+                                             "lcp", "gleason" , "pgg45"),
+                   beta_hat = ridge_model)
+@
+
+Problem 4:
+Mean Squared Error of Cross Validation
+
+
+<< eval = TRUE >>=
+cv1<- function(data, dep, indep, lambda) {
+  k <- max(data$group)
+  A <- matrix(0, nrow = k, ncol = 1)
+  for (i in 1:k){
+    train <- data %>% filter(group != i)
+    test <- data %>% filter(group == i)
+    y_test <- as.matrix(test[,dep])
+    beta_hat <- ridge(data=train, dep, indep, lambda  )
+    y_hat <- pred(data = test, indep , beta_hat )
+    group_mse <- mean((as.vector(y_hat)-as.vector(y_test))^2)
+    A[i,] <- group_mse
+    
+  }
+  mse<-sum(A)/5
+  return(mse)
+}
+
+MSE<-cv1(data = prostate, 
+                               dep = "lpsa",
+                               indep = c("lcavol", "lweight", 
+                                         "age", "lbph" , "svi",
+                                         "lcp", "gleason" , "pgg45"),
+                               lambda = 1)
+MSE
+@
+\newpage
+Problem 5: MSE of Cross validation for different values of lambda
+
+<< eval = TRUE >>=
+cv2 <- function(data, dep, indep, lambda) {
+  B <- matrix(0, nrow = length(lambda), ncol = 2)
+  for(j in lambda){
+    mse<-cv1(data, dep, indep, lambda = j)
+    B[j+1,2]<-mse
+    B[j+1,1]<-j
+    returnobject<-as.data.frame(B)
+    names(returnobject)<- c("lambda","mse")
+  }
+  return(returnobject)
+}
+
+
+MSE_lambda<-cv2(data = prostate, 
+                                      dep = "lpsa",
+                                      indep = c("lcavol", "lweight",
+                                                "age", "lbph" , "svi",
+                                                "lcp", "gleason" , "pgg45"),
+                                      lambda = 0:50)
+
+
+@
+
+Problem 6: Plot the MSE values from Problem 5 a as variable dependent on lambda
+
+<<message = FALSE, warning = FALSE, echo = FALSE >>=
+ggplot(MSE_lambda, aes(x = lambda, y = mse)) +
+  geom_line() +
+  geom_point()
+@
+\end{document}
