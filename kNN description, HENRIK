@@ -1,0 +1,12 @@
+What is kNN?
+
+kNN stands for k-Nearest Neighbour and is a way of classifying different kinds of observations into classes. As many other classification methods kNN requires a training set and a test set. However unlike other classification methods that has been used kNN does draw any actual lessons from the training set. Instead it uses the training set more like a template and compares the whole training each with test observation. 
+
+The name describes the classification process pretty well. The letter k is simple notation for the number of training observations taken into account when classifying the test observation. Nearest Neighbour refers to the training observations which is measured to be the closest to the test observation. This measurement is done by treating each observation as a vector and then calculating the euclidean distance between each training observation and the test observation. 
+Amongst the closest training observations a certain number(denoted by k) is picked out. The test observation is classified as belonging to the most represented of these k-closest observations.      
+
+In case a tie occurs the default solution is to classify the test observation at random from amongst the represented classes. There are of course a multitude of other ways to deal with ties. Amongst others these include: lowering the k, raising the k and reporting the observation as unclassified. 
+
+However, as the question of the most effective tie breaking method is beyond the scope of the project we decided that the random tie breaking method were the best for our purposes. To raise or lower the k for example, could have interfered with the fact that we were trying to find an optimal value for k. 
+
+There is also the alternative to introduce a “majority threshold” for the classification process. This basically means that the most represented class must be represented with a certain margin in order to have the test observation be classified as this class. Otherwise the classification will be regarded as a tie, and will be dealt with according to the tie break method. We did not feel that this was relevant for us, so we ignored this alternative. 
